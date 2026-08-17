@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>販売価格計算ツール</title>
+<style>
+  :root {
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e3e3e6;
+    --text: #1f1f23;
+    --muted: #6b6b73;
+    --accent: #c96442;
+    --accent-light: #f3e2da;
+    --profit: #2e7d32;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    color: var(--text);
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 17px; margin: 4px 0 16px; font-weight: 600; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  input[type=number] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px; /* 16px+ prevents iOS auto-zoom on focus */
+    background: #fff;
+    color: var(--text);
+    -moz-appearance: textfield;
+  }
+  input[type=number]:focus { outline: 2px solid var(--accent-light); border-color: var(--accent); }
+
+  .section-title {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 4px 0 10px;
+  }
+
+  .country-row {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 0;
+  }
+  .country-row:first-of-type { padding-top: 0; }
+  .country-row:last-of-type { border-bottom: none; padding-bottom: 0; }
+
+  .country-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .country-name { font-weight: 600; font-size: 15px; }
+  .fee-wrap { display: flex; align-items: center; gap: 6px; }
+  .fee-input {
+    width: 60px;
+    padding: 8px 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: right;
+    font-size: 16px;
+  }
+  .unit { color: var(--muted); font-size: 13px; }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    text-align: center;
+  }
+  .metric {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 8px 4px;
+  }
+  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .metric-value { font-size: 14px; font-weight: 600; word-break: break-word; }
+  .metric-value.price { color: var(--text); }
+  .metric-value.profit { color: var(--profit); }
+
+  .note { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
+
+  @media (min-width: 480px) {
+    body { padding: 24px; }
+    .metric-value { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>販売価格計算ツール</h1>
+
+  <div class="card">
+    <div class="field">
+      <label>仕入れ価格（円）</label>
+      <input type="number" id="cost" inputmode="decimal" value="1000" min="0">
+    </div>
+    <div class="field">
+      <label>国際送料（円）</label>
+      <input type="number" id="shipping" inputmode="decimal" value="380" min="0">
+    </div>
+    <div class="field">
+      <label>目標利益率（%）</label>
+      <input type="number" id="margin" inputmode="decimal" value="10" min="0" max="99" step="0.1">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">国別の販売価格・粗利</div>
+    <div id="rows"></div>
+    <div class="note">
+      計算式：販売価格 = (仕入れ価格 + 国際送料) ÷ (1 − 手数料率 − 目標利益率)<br>
+      粗利 = 販売価格 − 仕入れ価格 − 国際送料 − (販売価格 × 手数料率)<br>
+      手数料率・送料・利益率はすべて編集できます。
+    </div>
+  </div>
+</div>
+
+<script>
+const countries = [
+  { code: 'TH', name: 'タイ', fee: 25 },
+  { code: 'TW', name: '台湾', fee: 16 },
+  { code: 'SG', name: 'シンガポール', fee: 29 },
+  { code: 'PH', name: 'フィリピン', fee: 21 },
+  { code: 'MY', name: 'マレーシア', fee: 35 },
+];
+
+const rowsEl = document.getElementById('rows');
+const costEl = document.getElementById('cost');
+const shippingEl = document.getElementById('shipping');
+const marginEl = document.getElementById('margin');
+
+function fmt(n) {
+  if (!isFinite(n)) return '—';
+  return Math.round(n).toLocaleString('ja-JP');
+}
+
+function buildRows() {
+  rowsEl.innerHTML = countries.map((c, i) => `
+    <div class="country-row">
+      <div class="country-head">
+        <span class="country-name">${c.name}（${c.code}）</span>
+        <span class="fee-wrap">
+          <input type="number" class="fee-input" inputmode="decimal" data-idx="${i}" value="${c.fee}" min="0" max="99" step="0.1">
+          <span class="unit">%</span>
+        </span>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">販売価格</div>
+          <div class="metric-value price" id="price-${i}">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">粗利</div>
+          <div class="metric-value profit" id="profit-${i}">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">利益率</div>
+          <div class="metric-value" id="rate-${i}">—</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  rowsEl.querySelectorAll('.fee-input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const idx = +e.target.dataset.idx;
+      countries[idx].fee = parseFloat(e.target.value) || 0;
+      calc();
+    });
+  });
+}
+
+function calc() {
+  const cost = parseFloat(costEl.value) || 0;
+  const shipping = parseFloat(shippingEl.value) || 0;
+  const margin = (parseFloat(marginEl.value) || 0) / 100;
+  const base = cost + shipping;
+
+  countries.forEach((c, i) => {
+    const fee = c.fee / 100;
+    const denom = 1 - fee - margin;
+    let price, profit, rate;
+    if (denom <= 0) {
+      price = NaN; profit = NaN; rate = NaN;
+    } else {
+      price = base / denom;
+      profit = price - base - price * fee;
+      rate = profit / price;
+    }
+    document.getElementById(`price-${i}`).textContent = isFinite(price) ? `¥${fmt(price)}` : '算出不可';
+    document.getElementById(`profit-${i}`).textContent = isFinite(profit) ? `¥${fmt(profit)}` : '—';
+    document.getElementById(`rate-${i}`).textContent = isFinite(rate) ? `${(rate*100).toFixed(1)}%` : '—';
+  });
+}
+
+[costEl, shippingEl, marginEl].forEach(el => el.addEventListener('input', calc));
+
+buildRows();
+calc();
+</script>
+</body>
+</html>
