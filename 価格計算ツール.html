@@ -25,7 +25,26 @@
     color: var(--text);
   }
   .wrap { max-width: 640px; margin: 0 auto; }
-  h1 { font-size: 17px; margin: 4px 0 16px; font-weight: 600; }
+  h1 { font-size: 17px; margin: 4px 0 4px; font-weight: 600; }
+  .fx-status {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .fx-refresh {
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .fx-refresh:active { background: var(--accent-light); }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -99,6 +118,12 @@
   .metric-value { font-size: 14px; font-weight: 600; word-break: break-word; }
   .metric-value.price { color: var(--text); }
   .metric-value.profit { color: var(--profit); }
+  .metric-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: 2px;
+  }
 
   .note { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
 
@@ -111,6 +136,7 @@
 <body>
 <div class="wrap">
   <h1>販売価格計算ツール</h1>
+  <div class="fx-status" id="fxStatus">為替レート取得中…</div>
 
   <div class="card">
     <div class="field">
@@ -133,28 +159,36 @@
     <div class="note">
       計算式：販売価格 = (仕入れ価格 + 国際送料) ÷ (1 − 手数料率 − 目標利益率)<br>
       粗利 = 販売価格 − 仕入れ価格 − 国際送料 − (販売価格 × 手数料率)<br>
-      手数料率・送料・利益率はすべて編集できます。
+      手数料率・送料・利益率はすべて編集できます。現地通貨は為替レートによる目安です。
     </div>
   </div>
 </div>
 
 <script>
 const countries = [
-  { code: 'TH', name: 'タイ', fee: 25 },
-  { code: 'TW', name: '台湾', fee: 16 },
-  { code: 'SG', name: 'シンガポール', fee: 29 },
-  { code: 'PH', name: 'フィリピン', fee: 21 },
-  { code: 'MY', name: 'マレーシア', fee: 35 },
+  { code: 'TH', name: 'タイ', fee: 25, currency: 'THB', symbol: '฿' },
+  { code: 'TW', name: '台湾', fee: 16, currency: 'TWD', symbol: 'NT$' },
+  { code: 'SG', name: 'シンガポール', fee: 29, currency: 'SGD', symbol: 'S$' },
+  { code: 'PH', name: 'フィリピン', fee: 21, currency: 'PHP', symbol: '₱' },
+  { code: 'MY', name: 'マレーシア', fee: 35, currency: 'MYR', symbol: 'RM' },
 ];
+
+let fxRates = null; // { THB: 0.2xx, TWD: ..., ... } = 1 JPY in that currency
 
 const rowsEl = document.getElementById('rows');
 const costEl = document.getElementById('cost');
 const shippingEl = document.getElementById('shipping');
 const marginEl = document.getElementById('margin');
+const fxStatusEl = document.getElementById('fxStatus');
 
 function fmt(n) {
   if (!isFinite(n)) return '—';
   return Math.round(n).toLocaleString('ja-JP');
+}
+
+function fmtLocal(n) {
+  if (!isFinite(n)) return '';
+  return n.toLocaleString('ja-JP', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function buildRows() {
@@ -171,6 +205,7 @@ function buildRows() {
         <div class="metric">
           <div class="metric-label">販売価格</div>
           <div class="metric-value price" id="price-${i}">—</div>
+          <div class="metric-sub" id="price-local-${i}"></div>
         </div>
         <div class="metric">
           <div class="metric-label">粗利</div>
@@ -213,13 +248,42 @@ function calc() {
     document.getElementById(`price-${i}`).textContent = isFinite(price) ? `¥${fmt(price)}` : '算出不可';
     document.getElementById(`profit-${i}`).textContent = isFinite(profit) ? `¥${fmt(profit)}` : '—';
     document.getElementById(`rate-${i}`).textContent = isFinite(rate) ? `${(rate*100).toFixed(1)}%` : '—';
+
+    const localEl = document.getElementById(`price-local-${i}`);
+    if (isFinite(price) && fxRates && fxRates[c.currency]) {
+      const local = price * fxRates[c.currency];
+      localEl.textContent = `${c.symbol}${fmtLocal(local)}`;
+    } else {
+      localEl.textContent = '';
+    }
   });
+}
+
+async function fetchRates() {
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/JPY');
+    const data = await res.json();
+    if (data && data.result === 'success' && data.rates) {
+      fxRates = data.rates;
+      const t = new Date(data.time_last_update_utc);
+      const label = isNaN(t) ? '' : t.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      fxStatusEl.innerHTML = `為替レート更新: ${label} <button class="fx-refresh" id="fxRefreshBtn" type="button">更新</button>`;
+    } else {
+      throw new Error('bad response');
+    }
+  } catch (err) {
+    fxStatusEl.innerHTML = `為替レート取得失敗（円表示のみ） <button class="fx-refresh" id="fxRefreshBtn" type="button">再試行</button>`;
+  }
+  const btn = document.getElementById('fxRefreshBtn');
+  if (btn) btn.addEventListener('click', fetchRates);
+  calc();
 }
 
 [costEl, shippingEl, marginEl].forEach(el => el.addEventListener('input', calc));
 
 buildRows();
 calc();
+fetchRates();
 </script>
 </body>
 </html>
