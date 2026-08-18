@@ -1,339 +1,288 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="Shopee利益計算" />
-<meta name="theme-color" content="#f5f4f0" />
-<link rel="manifest" href="manifest.json" />
-<link rel="apple-touch-icon" href="icon-192.png" />
-<title>Shopee 利益計算機</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>販売価格計算ツール</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-:root {
-  --bg: #f5f4f0; --surface: #ffffff; --surface2: #f0ede8;
-  --border: rgba(0,0,0,0.09); --text: #1a1a1a; --text2: #888; --text3: #bbb;
-  --blue: #1a6ef5; --green: #1a8c4e; --red: #d93025;
-  --radius: 16px;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bot: env(safe-area-inset-bottom, 0px);
-}
-@media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1c1c1e; --surface: #2c2c2e; --surface2: #3a3a3c;
-    --border: rgba(255,255,255,0.09);
-    --text: #f2f2f7; --text2: #98989f; --text3: #636366;
-    --blue: #4a9eff; --green: #34c77a; --red: #ff6b6b;
+    --bg: #f7f7f8;
+    --card: #ffffff;
+    --border: #e3e3e6;
+    --text: #1f1f23;
+    --muted: #6b6b73;
+    --accent: #c96442;
+    --accent-light: #f3e2da;
+    --profit: #2e7d32;
   }
-}
-html, body { min-height: 100%; background: var(--bg); font-family: -apple-system, 'Hiragino Sans', sans-serif; color: var(--text); }
-.nav {
-  position: sticky; top: 0; z-index: 100; background: var(--bg);
-  padding: calc(var(--safe-top) + 12px) 20px 12px;
-  border-bottom: 0.5px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.nav-title { font-size: 17px; font-weight: 600; }
-.nav-right { display: flex; align-items: center; gap: 8px; }
-.fx-status { font-size: 11px; color: var(--text3); }
-.nav-btn { font-size: 13px; color: var(--blue); background: none; border: none; padding: 6px 0; cursor: pointer; font-family: inherit; }
-.app { padding: 16px 16px calc(var(--safe-bot) + 32px); max-width: 480px; margin: 0 auto; }
-.section-label { font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; margin: 20px 0 8px; }
-.top-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-.input-card { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px 16px; }
-.input-card label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
-.input-card input { width: 100%; font-size: 22px; font-weight: 600; color: var(--text); background: transparent; border: none; outline: none; font-family: inherit; -webkit-appearance: none; }
-.input-card input::placeholder { color: var(--text3); }
-.input-card .unit { font-size: 13px; color: var(--text2); }
-.country-card { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 14px 16px; margin-bottom: 10px; }
-.c-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-.c-flag { font-size: 22px; line-height: 1; }
-.c-name { font-size: 15px; font-weight: 600; }
-.fee-item { margin-bottom: 8px; }
-.fee-label { font-size: 10px; color: var(--text2); display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-.fee-label .sub { font-size: 10px; color: var(--text3); }
-.fee-row { display: flex; align-items: center; gap: 6px; background: var(--surface2); border-radius: 8px; padding: 5px 10px; }
-.fee-row input[type=number] { flex: 1; font-size: 15px; font-weight: 600; color: var(--text); background: transparent; border: none; outline: none; text-align: right; font-family: inherit; -webkit-appearance: none; }
-.fee-row .unit { font-size: 12px; color: var(--text2); white-space: nowrap; }
-.divider { border: none; border-top: 0.5px solid var(--border); margin: 12px 0; }
-.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.result-box { background: var(--surface2); border-radius: 10px; padding: 10px 12px; }
-.r-label { font-size: 10px; color: var(--text3); margin-bottom: 3px; }
-.r-val { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.2; }
-.r-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
-.blue { color: var(--blue); } .green { color: var(--green); } .red { color: var(--red); }
-.summary-card { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); padding: 16px; }
-.sum-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
-.sum-item { text-align: center; padding: 8px 4px; }
-.sum-flag { font-size: 18px; margin-bottom: 4px; }
-.sum-local { font-size: 15px; font-weight: 600; color: var(--blue); }
-.sum-jpy { font-size: 11px; color: var(--text2); margin-top: 2px; }
-.sum-profit { font-size: 12px; font-weight: 600; margin-top: 4px; }
-.sum-rate { font-size: 10px; color: var(--text3); margin-top: 1px; }
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    color: var(--text);
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 17px; margin: 4px 0 4px; font-weight: 600; }
+  .fx-status {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .fx-refresh {
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .fx-refresh:active { background: var(--accent-light); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  input[type=number] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px; /* 16px+ prevents iOS auto-zoom on focus */
+    background: #fff;
+    color: var(--text);
+    -moz-appearance: textfield;
+  }
+  input[type=number]:focus { outline: 2px solid var(--accent-light); border-color: var(--accent); }
+
+  .section-title {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 4px 0 10px;
+  }
+
+  .country-row {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 0;
+  }
+  .country-row:first-of-type { padding-top: 0; }
+  .country-row:last-of-type { border-bottom: none; padding-bottom: 0; }
+
+  .country-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .country-name { font-weight: 600; font-size: 15px; }
+  .fee-wrap { display: flex; align-items: center; gap: 6px; }
+  .fee-input {
+    width: 60px;
+    padding: 8px 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: right;
+    font-size: 16px;
+  }
+  .unit { color: var(--muted); font-size: 13px; }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    text-align: center;
+  }
+  .metric {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 8px 4px;
+  }
+  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .metric-value { font-size: 14px; font-weight: 600; word-break: break-word; }
+  .metric-value.price { color: var(--text); }
+  .metric-value.profit { color: var(--profit); }
+  .metric-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+
+  .note { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
+
+  @media (min-width: 480px) {
+    body { padding: 24px; }
+    .metric-value { font-size: 15px; }
+  }
 </style>
 </head>
 <body>
-<div class="nav">
-  <span class="nav-title">Shopee 利益計算</span>
-  <div class="nav-right">
-    <span class="fx-status" id="fxStatus">レート取得中...</span>
-    <button class="nav-btn" onclick="fetchRates()">為替更新</button>
-  </div>
-</div>
-<div class="app">
-  <div class="section-label">基本設定</div>
-  <div class="top-grid">
-    <div class="input-card">
-      <label>仕入れ価格</label>
-      <input type="number" inputmode="numeric" id="cost" placeholder="例: 5400" oninput="calc()" />
-      <span class="unit">円</span>
+<div class="wrap">
+  <h1>販売価格計算ツール</h1>
+  <div class="fx-status" id="fxStatus">為替レート取得中…</div>
+
+  <div class="card">
+    <div class="field">
+      <label>仕入れ価格（円）</label>
+      <input type="number" id="cost" inputmode="decimal" value="1000" min="0">
     </div>
-    <div class="input-card">
-      <label>国際送料（共通）</label>
-      <input type="number" inputmode="numeric" id="ship" value="500" oninput="calc()" />
-      <span class="unit">円</span>
+    <div class="field">
+      <label>国際送料（円）</label>
+      <input type="number" id="shipping" inputmode="decimal" value="380" min="0">
     </div>
-    <div class="input-card">
-      <label>目標利益率</label>
-      <input type="number" inputmode="decimal" id="targetMargin" value="10" step="0.5" oninput="calc()" />
-      <span class="unit">%</span>
+    <div class="field">
+      <label>目標利益率（%）</label>
+      <input type="number" id="margin" inputmode="decimal" value="10" min="0" max="99" step="0.1">
     </div>
   </div>
 
-  <div class="section-label">各国手数料設定</div>
-
-  <div class="country-card">
-    <div class="c-header"><span class="c-flag">🇸🇬</span><span class="c-name">シンガポール</span></div>
-    <div class="fee-item">
-      <div class="fee-label">
-        <span>セラーバウチャー（10%・上限 1,000円 / <span id="lSG_cap">—</span>）</span>
-        <span class="sub" id="lSG_disc">—</span>
-      </div>
-    </div>
-    <div class="fee-item">
-      <div class="fee-label">販売手数料</div>
-      <div class="fee-row"><input type="number" inputmode="decimal" id="fSG_commission" value="26" step="0.1" oninput="calc()" /><span class="unit">%</span></div>
-    </div>
-    <div class="divider"></div>
-    <div class="result-grid">
-      <div class="result-box">
-        <div class="r-label">推奨販売価格</div>
-        <div class="r-val blue" id="rSG_price">—</div>
-        <div class="r-sub" id="rSG_fx">—</div>
-      </div>
-      <div class="result-box">
-        <div class="r-label">手数料合計</div>
-        <div class="r-val red" id="rSG_fee">—</div>
-        <div class="r-sub" id="rSG_fee_sub">—</div>
-      </div>
-      <div class="result-box" style="grid-column:1/-1;">
-        <div class="r-label">粗利 / 利益率</div>
-        <div class="r-val" id="rSG_profit">—</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="country-card">
-    <div class="c-header"><span class="c-flag">🇲🇾</span><span class="c-name">マレーシア</span></div>
-    <div class="fee-item">
-      <div class="fee-label">
-        <span>セラーバウチャー（10%・上限 1,000円 / <span id="lMY_cap">—</span>）</span>
-        <span class="sub" id="lMY_disc">—</span>
-      </div>
-    </div>
-    <div class="fee-item">
-      <div class="fee-label">販売手数料</div>
-      <div class="fee-row"><input type="number" inputmode="decimal" id="fMY_commission" value="33" step="0.1" oninput="calc()" /><span class="unit">%</span></div>
-    </div>
-    <div class="divider"></div>
-    <div class="result-grid">
-      <div class="result-box">
-        <div class="r-label">推奨販売価格</div>
-        <div class="r-val blue" id="rMY_price">—</div>
-        <div class="r-sub" id="rMY_fx">—</div>
-      </div>
-      <div class="result-box">
-        <div class="r-label">手数料合計</div>
-        <div class="r-val red" id="rMY_fee">—</div>
-        <div class="r-sub" id="rMY_fee_sub">—</div>
-      </div>
-      <div class="result-box" style="grid-column:1/-1;">
-        <div class="r-label">粗利 / 利益率</div>
-        <div class="r-val" id="rMY_profit">—</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="country-card">
-    <div class="c-header"><span class="c-flag">🇵🇭</span><span class="c-name">フィリピン</span></div>
-    <div class="fee-item">
-      <div class="fee-label">
-        <span>セラーバウチャー（10%・上限 1,000円 / <span id="lPH_cap">—</span>）</span>
-        <span class="sub" id="lPH_disc">—</span>
-      </div>
-    </div>
-    <div class="fee-item">
-      <div class="fee-label">販売手数料</div>
-      <div class="fee-row"><input type="number" inputmode="decimal" id="fPH_commission" value="19" step="0.1" oninput="calc()" /><span class="unit">%</span></div>
-    </div>
-    <div class="divider"></div>
-    <div class="result-grid">
-      <div class="result-box">
-        <div class="r-label">推奨販売価格</div>
-        <div class="r-val blue" id="rPH_price">—</div>
-        <div class="r-sub" id="rPH_fx">—</div>
-      </div>
-      <div class="result-box">
-        <div class="r-label">手数料合計</div>
-        <div class="r-val red" id="rPH_fee">—</div>
-        <div class="r-sub" id="rPH_fee_sub">—</div>
-      </div>
-      <div class="result-box" style="grid-column:1/-1;">
-        <div class="r-label">粗利 / 利益率</div>
-        <div class="r-val" id="rPH_profit">—</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-label">サマリー</div>
-  <div class="summary-card">
-    <div class="sum-grid">
-      <div class="sum-item">
-        <div class="sum-flag">🇸🇬</div>
-        <div class="sum-local" id="sSG_local">—</div>
-        <div class="sum-jpy" id="sSG_jpy">—</div>
-        <div class="sum-profit" id="sSG_profit">—</div>
-        <div class="sum-rate" id="sSG_rate">—</div>
-      </div>
-      <div class="sum-item">
-        <div class="sum-flag">🇲🇾</div>
-        <div class="sum-local" id="sMY_local">—</div>
-        <div class="sum-jpy" id="sMY_jpy">—</div>
-        <div class="sum-profit" id="sMY_profit">—</div>
-        <div class="sum-rate" id="sMY_rate">—</div>
-      </div>
-      <div class="sum-item">
-        <div class="sum-flag">🇵🇭</div>
-        <div class="sum-local" id="sPH_local">—</div>
-        <div class="sum-jpy" id="sPH_jpy">—</div>
-        <div class="sum-profit" id="sPH_profit">—</div>
-        <div class="sum-rate" id="sPH_rate">—</div>
-      </div>
+  <div class="card">
+    <div class="section-title">国別の販売価格・粗利</div>
+    <div id="rows"></div>
+    <div class="note">
+      計算式：販売価格 = (仕入れ価格 + 国際送料) ÷ (1 − 手数料率 − 目標利益率)<br>
+      粗利 = 販売価格 − 仕入れ価格 − 国際送料 − (販売価格 × 手数料率)<br>
+      手数料率・送料・利益率はすべて編集できます。現地通貨は為替レートによる目安です。
     </div>
   </div>
 </div>
 
 <script>
-let fxRates = { SG: null, PH: null, MY: null };
-const localCcy = { SG: 'SGD', PH: 'PHP', MY: 'MYR' };
-const localDec = { SG: 2, PH: 0, MY: 2 };
-const CAP_JPY = 1000;
-const VOUCHER_PCT = 0.10;
+const countries = [
+  { code: 'TH', name: 'タイ', fee: 25, currency: 'THB', symbol: '฿' },
+  { code: 'TW', name: '台湾', fee: 16, currency: 'TWD', symbol: 'NT$' },
+  { code: 'SG', name: 'シンガポール', fee: 29, currency: 'SGD', symbol: 'S$' },
+  { code: 'PH', name: 'フィリピン', fee: 21, currency: 'PHP', symbol: '₱' },
+  { code: 'MY', name: 'マレーシア', fee: 35, currency: 'MYR', symbol: 'RM' },
+];
 
-function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
-function yen(n) { return Math.round(n).toLocaleString('ja-JP') + '円'; }
-function pct(n) { return n.toFixed(1) + '%'; }
-function localFmt(n, code) {
-  const dec = localDec[code];
-  return n.toLocaleString('ja-JP', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + ' ' + localCcy[code];
+let fxRates = null; // { THB: 0.2xx, TWD: ..., ... } = 1 JPY in that currency
+
+const rowsEl = document.getElementById('rows');
+const costEl = document.getElementById('cost');
+const shippingEl = document.getElementById('shipping');
+const marginEl = document.getElementById('margin');
+const fxStatusEl = document.getElementById('fxStatus');
+
+function fmt(n) {
+  if (!isFinite(n)) return '—';
+  return Math.round(n).toLocaleString('ja-JP');
 }
 
-function clearCountry(code) {
-  ['price','fx','fee','fee_sub','profit'].forEach(k => {
-    const el = document.getElementById('r' + code + '_' + k);
-    if (el) el.textContent = '—';
-  });
-  document.getElementById('r' + code + '_profit').className = 'r-val';
-  ['local','jpy','profit','rate'].forEach(k => {
-    const el = document.getElementById('s' + code + '_' + k);
-    if (el) el.textContent = '—';
-  });
-  document.getElementById('l' + code + '_disc').textContent = '—';
+function fmtLocal(n) {
+  if (!isFinite(n)) return '';
+  return n.toLocaleString('ja-JP', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function calcCountry(code) {
-  const costRaw = document.getElementById('cost').value;
-  const cost = parseFloat(costRaw);
-  const targetMargin = v('targetMargin') / 100;
-  const commissionPct = v('f' + code + '_commission') / 100;
-  const shipFixed = v('ship');
-  const rate = fxRates[code];
+function buildRows() {
+  rowsEl.innerHTML = countries.map((c, i) => `
+    <div class="country-row">
+      <div class="country-head">
+        <span class="country-name">${c.name}（${c.code}）</span>
+        <span class="fee-wrap">
+          <input type="number" class="fee-input" inputmode="decimal" data-idx="${i}" value="${c.fee}" min="0" max="99" step="0.1">
+          <span class="unit">%</span>
+        </span>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">販売価格</div>
+          <div class="metric-value price" id="price-${i}">—</div>
+          <div class="metric-sub" id="price-local-${i}"></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">粗利</div>
+          <div class="metric-value profit" id="profit-${i}">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">利益率</div>
+          <div class="metric-value" id="rate-${i}">—</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
 
-  document.getElementById('l' + code + '_cap').textContent = rate ? localFmt(CAP_JPY * rate, code) : '—';
+  rowsEl.querySelectorAll('.fee-input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const idx = +e.target.dataset.idx;
+      countries[idx].fee = parseFloat(e.target.value) || 0;
+      calc();
+    });
+  });
+}
 
-  if (!costRaw || isNaN(cost)) { clearCountry(code); return; }
+function calc() {
+  const cost = parseFloat(costEl.value) || 0;
+  const shipping = parseFloat(shippingEl.value) || 0;
+  const margin = (parseFloat(marginEl.value) || 0) / 100;
+  const base = cost + shipping;
 
-  let price;
-  const denom1 = 1 - VOUCHER_PCT - commissionPct - targetMargin;
-  if (denom1 > 0) {
-    const p1 = (shipFixed + cost) / denom1;
-    if (p1 <= CAP_JPY / VOUCHER_PCT) { price = p1; }
-  }
-  if (!price) {
-    const denom2 = 1 - commissionPct - targetMargin;
-    if (denom2 <= 0) {
-      document.getElementById('r' + code + '_price').textContent = '計算不可';
-      document.getElementById('r' + code + '_fx').textContent = '利益率か手数料を見直してください';
-      return;
+  countries.forEach((c, i) => {
+    const fee = c.fee / 100;
+    const denom = 1 - fee - margin;
+    let price, profit, rate;
+    if (denom <= 0) {
+      price = NaN; profit = NaN; rate = NaN;
+    } else {
+      price = base / denom;
+      profit = price - base - price * fee;
+      rate = profit / price;
     }
-    price = (CAP_JPY + shipFixed + cost) / denom2;
-  }
+    document.getElementById(`price-${i}`).textContent = isFinite(price) ? `¥${fmt(price)}` : '算出不可';
+    document.getElementById(`profit-${i}`).textContent = isFinite(profit) ? `¥${fmt(profit)}` : '—';
+    document.getElementById(`rate-${i}`).textContent = isFinite(rate) ? `${(rate*100).toFixed(1)}%` : '—';
 
-  const voucherAmt = Math.min(price * VOUCHER_PCT, CAP_JPY);
-  const commissionAmt = price * commissionPct;
-  const totalFee = voucherAmt + shipFixed + commissionAmt;
-  const income = price - totalFee;
-  const profit = income - cost;
-  const actualMargin = price > 0 ? (profit / price) * 100 : 0;
-  const isProfit = profit >= 0;
-
-  document.getElementById('l' + code + '_disc').textContent = rate
-    ? '割引: ' + yen(voucherAmt) + ' / ' + localFmt(voucherAmt * rate, code)
-    : '割引: ' + yen(voucherAmt);
-
-  document.getElementById('r' + code + '_price').textContent = yen(price);
-  document.getElementById('r' + code + '_fx').textContent = rate ? '≈ ' + localFmt(price * rate, code) : '—';
-  document.getElementById('r' + code + '_fee').textContent = '-' + yen(totalFee);
-  document.getElementById('r' + code + '_fee_sub').textContent =
-    '送料' + yen(shipFixed) + ' / バウチャー' + yen(voucherAmt) + ' / 手数料' + yen(commissionAmt);
-
-  const profitEl = document.getElementById('r' + code + '_profit');
-  profitEl.textContent = yen(profit) + ' / ' + pct(actualMargin);
-  profitEl.className = 'r-val ' + (isProfit ? 'green' : 'red');
-
-  document.getElementById('s' + code + '_local').textContent = rate ? localFmt(price * rate, code) : yen(price);
-  document.getElementById('s' + code + '_jpy').textContent = rate ? yen(price) : '';
-  const sProfitEl = document.getElementById('s' + code + '_profit');
-  sProfitEl.textContent = (isProfit ? '+' : '') + yen(profit);
-  sProfitEl.className = 'sum-profit ' + (isProfit ? 'green' : 'red');
-  document.getElementById('s' + code + '_rate').textContent = '利益率 ' + pct(actualMargin);
+    const localEl = document.getElementById(`price-local-${i}`);
+    if (isFinite(price) && fxRates && fxRates[c.currency]) {
+      const local = price * fxRates[c.currency];
+      localEl.textContent = `${c.symbol}${fmtLocal(local)}`;
+    } else {
+      localEl.textContent = '';
+    }
+  });
 }
-
-function calc() { ['SG','MY','PH'].forEach(calcCountry); }
 
 async function fetchRates() {
-  document.getElementById('fxStatus').textContent = '取得中...';
   try {
-    const res = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/jpy.json');
+    const res = await fetch('https://open.er-api.com/v6/latest/JPY');
     const data = await res.json();
-    const r = data.jpy;
-    fxRates = { SG: r.sgd, PH: r.php, MY: r.myr };
-    document.getElementById('fxStatus').textContent = new Date(data.date || Date.now()).toLocaleDateString('ja-JP');
-    calc();
-  } catch(e) {
-    document.getElementById('fxStatus').textContent = 'オフライン';
-    calc();
+    if (data && data.result === 'success' && data.rates) {
+      fxRates = data.rates;
+      const t = new Date(data.time_last_update_utc);
+      const label = isNaN(t) ? '' : t.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      fxStatusEl.innerHTML = `為替レート更新: ${label} <button class="fx-refresh" id="fxRefreshBtn" type="button">更新</button>`;
+    } else {
+      throw new Error('bad response');
+    }
+  } catch (err) {
+    fxStatusEl.innerHTML = `為替レート取得失敗（円表示のみ） <button class="fx-refresh" id="fxRefreshBtn" type="button">再試行</button>`;
   }
+  const btn = document.getElementById('fxRefreshBtn');
+  if (btn) btn.addEventListener('click', fetchRates);
+  calc();
 }
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
-}
+[costEl, shippingEl, marginEl].forEach(el => el.addEventListener('input', calc));
 
+buildRows();
+calc();
 fetchRates();
 </script>
 </body>
