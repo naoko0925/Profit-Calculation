@@ -86,22 +86,19 @@
   .country-row:last-of-type { border-bottom: none; padding-bottom: 0; }
 
   .country-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 10px;
   }
   .country-name { font-weight: 600; font-size: 15px; }
-  .fee-wrap { display: flex; align-items: center; gap: 6px; }
+  .fee-wrap { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 2px; }
   .fee-input {
-    width: 60px;
-    padding: 8px 6px;
+    width: 44px;
+    padding: 5px 4px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 7px;
     text-align: right;
     font-size: 16px;
   }
-  .unit { color: var(--muted); font-size: 13px; }
+  .unit { color: var(--muted); font-size: 12px; }
 
   .metrics {
     display: grid;
@@ -114,15 +111,22 @@
     border-radius: 10px;
     padding: 8px 4px;
   }
+  .metric.price-metric { padding: 10px 4px; }
   .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
   .metric-value { font-size: 14px; font-weight: 600; word-break: break-word; }
-  .metric-value.price { color: var(--text); }
   .metric-value.profit { color: var(--profit); }
+  .metric-value-lg {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.15;
+    word-break: break-word;
+  }
   .metric-sub {
     font-size: 11px;
     color: var(--muted);
     font-weight: 500;
-    margin-top: 2px;
+    margin-top: 3px;
   }
 
   .note { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.7; }
@@ -130,6 +134,7 @@
   @media (min-width: 480px) {
     body { padding: 24px; }
     .metric-value { font-size: 15px; }
+    .metric-value-lg { font-size: 22px; }
   }
 </style>
 </head>
@@ -196,24 +201,23 @@ function buildRows() {
     <div class="country-row">
       <div class="country-head">
         <span class="country-name">${c.name}（${c.code}）</span>
-        <span class="fee-wrap">
-          <input type="number" class="fee-input" inputmode="decimal" data-idx="${i}" value="${c.fee}" min="0" max="99" step="0.1">
-          <span class="unit">%</span>
-        </span>
       </div>
       <div class="metrics">
         <div class="metric">
-          <div class="metric-label">販売価格</div>
-          <div class="metric-value price" id="price-${i}">—</div>
-          <div class="metric-sub" id="price-local-${i}"></div>
+          <div class="metric-label">手数料</div>
+          <div class="fee-wrap">
+            <input type="number" class="fee-input" inputmode="decimal" data-idx="${i}" value="${c.fee}" min="0" max="99" step="0.1">
+            <span class="unit">%</span>
+          </div>
         </div>
         <div class="metric">
           <div class="metric-label">粗利</div>
           <div class="metric-value profit" id="profit-${i}">—</div>
         </div>
-        <div class="metric">
-          <div class="metric-label">利益率</div>
-          <div class="metric-value" id="rate-${i}">—</div>
+        <div class="metric price-metric">
+          <div class="metric-label">販売価格</div>
+          <div class="metric-value-lg" id="price-local-${i}">—</div>
+          <div class="metric-sub" id="price-${i}"></div>
         </div>
       </div>
     </div>
@@ -245,33 +249,50 @@ function calc() {
       profit = price - base - price * fee;
       rate = profit / price;
     }
-    document.getElementById(`price-${i}`).textContent = isFinite(price) ? `¥${fmt(price)}` : '算出不可';
     document.getElementById(`profit-${i}`).textContent = isFinite(profit) ? `¥${fmt(profit)}` : '—';
-    document.getElementById(`rate-${i}`).textContent = isFinite(rate) ? `${(rate*100).toFixed(1)}%` : '—';
 
+    const jpyEl = document.getElementById(`price-${i}`);
     const localEl = document.getElementById(`price-local-${i}`);
-    if (isFinite(price) && fxRates && fxRates[c.currency]) {
-      const local = price * fxRates[c.currency];
+    const fxRate = fxRates && fxRates[c.currency.toLowerCase()];
+    if (!isFinite(price)) {
+      localEl.textContent = '算出不可';
+      jpyEl.textContent = '';
+    } else if (fxRate) {
+      const local = price * fxRate;
       localEl.textContent = `${c.symbol}${fmtLocal(local)}`;
+      jpyEl.textContent = `¥${fmt(price)}`;
     } else {
-      localEl.textContent = '';
+      localEl.textContent = `¥${fmt(price)}`;
+      jpyEl.textContent = '';
     }
   });
 }
 
+// Tries multiple free, CORS-enabled sources in order (some networks/browsers block one or the other).
+const FX_SOURCES = [
+  'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/jpy.json',
+  'https://latest.currency-api.pages.dev/v1/currencies/jpy.json',
+];
+
 async function fetchRates() {
-  try {
-    const res = await fetch('https://open.er-api.com/v6/latest/JPY');
-    const data = await res.json();
-    if (data && data.result === 'success' && data.rates) {
-      fxRates = data.rates;
-      const t = new Date(data.time_last_update_utc);
-      const label = isNaN(t) ? '' : t.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      fxStatusEl.innerHTML = `為替レート更新: ${label} <button class="fx-refresh" id="fxRefreshBtn" type="button">更新</button>`;
-    } else {
-      throw new Error('bad response');
+  let ok = false;
+  for (const url of FX_SOURCES) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('http ' + res.status);
+      const data = await res.json();
+      if (data && data.jpy) {
+        fxRates = data.jpy;
+        const label = data.date || '';
+        fxStatusEl.innerHTML = `為替レート更新: ${label} <button class="fx-refresh" id="fxRefreshBtn" type="button">更新</button>`;
+        ok = true;
+        break;
+      }
+    } catch (err) {
+      // try next source
     }
-  } catch (err) {
+  }
+  if (!ok) {
     fxStatusEl.innerHTML = `為替レート取得失敗（円表示のみ） <button class="fx-refresh" id="fxRefreshBtn" type="button">再試行</button>`;
   }
   const btn = document.getElementById('fxRefreshBtn');
